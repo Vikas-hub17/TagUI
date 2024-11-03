@@ -1,0 +1,50 @@
+// automation.tag
+// Import required modules
+js begin
+const { google } = require('googleapis');
+const fs = require('fs');
+
+// Load credentials
+const credentials = JSON.parse(fs.readFileSync('credentials.json'));
+const { client_secret, client_id, redirect_uris } = credentials.web;
+const auth = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+
+// Authenticate using credentials
+const tokenPath = 'token.json';
+const sheets = google.sheets({ version: 'v4', auth });
+
+// Authenticate and get token
+function authenticate() {
+    const token = JSON.parse(fs.readFileSync(tokenPath));
+    auth.setCredentials(token);
+}
+
+// Function to copy data from Sheet 1 to Sheet 2
+function copySheetData() {
+    authenticate();
+    const spreadsheetId = '18kSw9Y6k-z1yjtzfzHykGYHJf8qlohs1Fp1RvSQv7TY'; // Replace with your Google Spreadsheet ID
+
+    // Read data from Sheet 1
+    sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: 'Sheet1',
+    }, (err, res) => {
+        if (err) return console.log('API Error: ' + err);
+        const rows = res.data.values;
+
+        // Write data to Sheet 2
+        sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: 'Sheet2',
+            valueInputOption: 'RAW',
+            resource: { values: rows },
+        }, (err, res) => {
+            if (err) return console.log('API Error: ' + err);
+            console.log('Data copied successfully');
+        });
+    });
+}
+
+// Run the function
+copySheetData();
+js end
